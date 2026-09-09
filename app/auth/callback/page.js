@@ -8,7 +8,19 @@ export default function AuthCallback() {
     const router = useRouter()
 
     useEffect(() => {
-        // Check if session exists or listen for changes
+        // Check if session already exists immediately
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+                const now = Date.now().toString()
+                localStorage.setItem('session_start_time', now)
+                if (session.user?.id) {
+                    localStorage.setItem(`session_start_time_${session.user.id}`, now)
+                }
+                router.push('/')
+            }
+        })
+
+        // Listen for auth state changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN' || session) {
                 const now = Date.now().toString()

@@ -205,6 +205,33 @@ export default function Settings() {
         }
     }
 
+    const handleSessionDurationChange = async (newDuration) => {
+        setSessionDuration(newDuration)
+        localStorage.setItem('sessionDuration', newDuration)
+        if (user?.id) {
+            localStorage.setItem(`wv_sessionDuration_${user.id}`, newDuration)
+            try {
+                await supabase.auth.updateUser({ data: { session_duration: newDuration } })
+            } catch (e) {
+                console.error('Error saving session duration setting:', e)
+            }
+        }
+    }
+
+    const handleNotificationsToggle = async () => {
+        const newValue = !notifications
+        setNotifications(newValue)
+        localStorage.setItem('emailNotifications', String(newValue))
+        if (user?.id) {
+            localStorage.setItem(`wv_emailNotifications_${user.id}`, String(newValue))
+            try {
+                await supabase.auth.updateUser({ data: { notifications: newValue } })
+            } catch (e) {
+                console.error('Error saving notifications setting:', e)
+            }
+        }
+    }
+
     const handleAutoArchiveToggle = async () => {
         const newValue = !autoArchiveExpired
         setAutoArchiveExpired(newValue)
@@ -263,8 +290,19 @@ export default function Settings() {
                 const { error } = await supabase.rpc('delete_user_account')
                 if (error) throw error
 
+                if (user?.id) {
+                    localStorage.removeItem(`wv_theme_${user.id}`)
+                    localStorage.removeItem(`wv_sessionDuration_${user.id}`)
+                    localStorage.removeItem(`wv_vaultLockEnabled_${user.id}`)
+                    localStorage.removeItem(`wv_pinHash_${user.id}`)
+                    localStorage.removeItem(`wv_autoArchiveExpired_${user.id}`)
+                    localStorage.removeItem(`wv_emailNotifications_${user.id}`)
+                    localStorage.removeItem(`wv_intro_seen_${user.id}`)
+                    localStorage.removeItem(`session_start_time_${user.id}`)
+                }
+
                 await supabase.auth.signOut()
-                router.push('/')
+                router.push('/login')
             } catch (error) {
                 console.error('Error deleting account:', error.message)
                 alert('Failed to delete account: ' + error.message)
@@ -371,10 +409,7 @@ export default function Settings() {
                                 </div>
                                 <select
                                     value={sessionDuration}
-                                    onChange={(e) => {
-                                        setSessionDuration(e.target.value)
-                                        localStorage.setItem('sessionDuration', e.target.value)
-                                    }}
+                                    onChange={(e) => handleSessionDurationChange(e.target.value)}
                                     className="h-9 px-3 pr-8 rounded-lg border border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-gray-800 dark:text-neutral-100 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors cursor-pointer"
                                 >
                                     <option value="1">1 day</option>
@@ -457,11 +492,7 @@ export default function Settings() {
                                         <p className="text-sm text-gray-500 dark:text-neutral-400">Receive warranty expiration alerts</p>
                                     </div>
                                     <button
-                                        onClick={() => {
-                                            const newValue = !notifications
-                                            setNotifications(newValue)
-                                            localStorage.setItem('emailNotifications', newValue)
-                                        }}
+                                        onClick={handleNotificationsToggle}
                                         title={notifications ? 'Notifications On' : 'Notifications Off'}
                                         className={`
                                     relative w-10 h-10 rounded-full flex items-center justify-center

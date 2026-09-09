@@ -76,8 +76,32 @@ export default function VaultLock() {
 
     const pressNumpad = (digit) => {
         if (isVerifying) return
+        setPinError('')
         setPinInput(prev => prev.length < 4 ? prev + digit : prev)
     }
+
+    // Keyboard support for desktop users
+    useEffect(() => {
+        if (!isLocked) return
+
+        const handleKeyDown = (e) => {
+            if (isVerifying) return
+            if (e.key >= '0' && e.key <= '9') {
+                setPinError('')
+                setPinInput(prev => prev.length < 4 ? prev + e.key : prev)
+            } else if (e.key === 'Backspace') {
+                setPinInput(prev => prev.slice(0, -1))
+                setPinError('')
+            } else if (e.key === 'Enter') {
+                if (pinInput.length === 4) {
+                    handleVerify(pinInput)
+                }
+            }
+        }
+
+        window.addEventListener('keydown', handleKeyDown)
+        return () => window.removeEventListener('keydown', handleKeyDown)
+    }, [isLocked, isVerifying, pinInput])
 
     const handleForgotPin = async () => {
         const { data: { user } } = await supabase.auth.getUser()
