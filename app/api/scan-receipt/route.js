@@ -63,11 +63,16 @@ export async function POST(request) {
 
         const rawText = response.candidates?.[0]?.content?.parts?.[0]?.text || ''
 
-        // Strip any accidental markdown fences Gemini may add
-        const cleaned = rawText
+        // Strip any accidental markdown fences and extract outermost JSON object
+        let cleaned = rawText
             .replace(/```json/gi, '')
             .replace(/```/g, '')
             .trim()
+
+        const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+            cleaned = jsonMatch[0]
+        }
 
         try {
             const parsed = JSON.parse(cleaned)

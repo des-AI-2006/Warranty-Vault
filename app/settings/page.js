@@ -24,12 +24,7 @@ export default function Settings() {
         }
         return '7'
     })
-    const [vaultLockEnabled, setVaultLockEnabled] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('vaultLockEnabled') === 'true'
-        }
-        return false
-    })
+    const [vaultLockEnabled, setVaultLockEnabled] = useState(false)
     const [autoArchiveExpired, setAutoArchiveExpired] = useState(() => {
         if (typeof window !== 'undefined') {
             return localStorage.getItem('autoArchiveExpired') === 'true'
@@ -108,7 +103,9 @@ export default function Settings() {
                     || '7'
                 setSessionDuration(userSessionDuration)
 
-                const userVaultLock = (localStorage.getItem(`wv_vaultLockEnabled_${user.id}`) || localStorage.getItem('vaultLockEnabled')) === 'true'
+                const userVaultLock = user?.id
+                    ? localStorage.getItem(`wv_vaultLockEnabled_${user.id}`) === 'true'
+                    : false
                 setVaultLockEnabled(userVaultLock)
 
                 const userAutoArchive = (localStorage.getItem(`wv_autoArchiveExpired_${user.id}`) || localStorage.getItem('autoArchiveExpired')) === 'true'
@@ -179,11 +176,10 @@ export default function Settings() {
 
     const handleVaultLockToggle = async () => {
         if (!vaultLockEnabled) {
-            // Turning ON — check if PIN already exists
-            const existingPin = user?.id ? (localStorage.getItem(`wv_pinHash_${user.id}`) || localStorage.getItem('vaultPinHash')) : localStorage.getItem('vaultPinHash')
+            // Turning ON — check if PIN already exists for this specific user
+            const existingPin = user?.id ? localStorage.getItem(`wv_pinHash_${user.id}`) : null
             if (existingPin) {
                 setVaultLockEnabled(true)
-                localStorage.setItem('vaultLockEnabled', 'true')
                 if (user?.id) localStorage.setItem(`wv_vaultLockEnabled_${user.id}`, 'true')
             } else {
                 // Need to set up a new PIN first
@@ -196,12 +192,12 @@ export default function Settings() {
         } else {
             // Turning OFF — disable and clear stored PIN
             setVaultLockEnabled(false)
-            localStorage.setItem('vaultLockEnabled', 'false')
-            localStorage.removeItem('vaultPinHash')
             if (user?.id) {
                 localStorage.setItem(`wv_vaultLockEnabled_${user.id}`, 'false')
                 localStorage.removeItem(`wv_pinHash_${user.id}`)
             }
+            localStorage.removeItem('vaultPinHash')
+            localStorage.removeItem('vaultLockEnabled')
         }
     }
 
@@ -265,8 +261,6 @@ export default function Settings() {
             return
         }
         const hash = await hashPin(pinSetupInput)
-        localStorage.setItem('vaultPinHash', hash)
-        localStorage.setItem('vaultLockEnabled', 'true')
         if (user?.id) {
             localStorage.setItem(`wv_pinHash_${user.id}`, hash)
             localStorage.setItem(`wv_vaultLockEnabled_${user.id}`, 'true')
@@ -287,18 +281,42 @@ export default function Settings() {
     const handleDeleteAccount = async () => {
         if (confirm('Are you certain? This action is permanent and cannot be undone.')) {
             try {
+                const { data: { user: currentUser } } = await supabase.auth.getUser()
+                const userId = currentUser?.id || user?.id
+
                 const { error } = await supabase.rpc('delete_user_account')
                 if (error) throw error
 
-                if (user?.id) {
-                    localStorage.removeItem(`wv_theme_${user.id}`)
-                    localStorage.removeItem(`wv_sessionDuration_${user.id}`)
-                    localStorage.removeItem(`wv_vaultLockEnabled_${user.id}`)
-                    localStorage.removeItem(`wv_pinHash_${user.id}`)
-                    localStorage.removeItem(`wv_autoArchiveExpired_${user.id}`)
-                    localStorage.removeItem(`wv_emailNotifications_${user.id}`)
-                    localStorage.removeItem(`wv_intro_seen_${user.id}`)
-                    localStorage.removeItem(`session_start_time_${user.id}`)
+                // Completely wipe all user-specific and legacy data from localStorage
+                if (typeof window !== 'undefined') {
+                    if (userId) {
+                        localStorage.removeItem(`wv_pinHash_${userId}`)
+                        localStorage.removeItem(`wv_vaultLockEnabled_${userId}`)
+                        localStorage.removeItem(`wv_theme_${userId}`)
+                        localStorage.removeItem(`wv_intro_seen_${userId}`)
+                        localStorage.removeItem(`wv_sessionDuration_${userId}`)
+                        localStorage.removeItem(`wv_emailNotifications_${userId}`)
+                        localStorage.removeItem(`wv_autoArchiveExpired_${userId}`)
+                        localStorage.removeItem(`session_start_time_${userId}`)
+                    }
+                    localStorage.removeItem('vaultPinHash')
+                    localStorage.removeItem('vaultLockEnabled')
+                    localStorage.removeItem('emailNotifications')
+                    localStorage.removeItem('sessionDuration')
+                    localStorage.removeItem('autoArchiveExpired')
+                    localStorage.removeItem('session_start_time')
+                    localStorage.removeItem('theme')
+
+                    // Clean any leftover keys for this user
+                    try {
+                        Object.keys(localStorage).forEach(k => {
+                            if (userId && k.includes(userId)) {
+                                localStorage.removeItem(k)
+                            }
+                        })
+                    } catch (e) {
+                        console.error('Error cleaning localStorage:', e)
+                    }
                 }
 
                 await supabase.auth.signOut()

@@ -26,9 +26,9 @@ export default function VaultLock() {
     const lockVault = useCallback(async () => {
         if (typeof window === 'undefined') return
         const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-        const enabled = (localStorage.getItem(`wv_vaultLockEnabled_${user.id}`) || localStorage.getItem('vaultLockEnabled')) === 'true'
-        const pinHash = localStorage.getItem(`wv_pinHash_${user.id}`) || localStorage.getItem('vaultPinHash')
+        if (!user || !user.id) return
+        const enabled = localStorage.getItem(`wv_vaultLockEnabled_${user.id}`) === 'true'
+        const pinHash = localStorage.getItem(`wv_pinHash_${user.id}`)
         if (enabled && pinHash) {
             setIsLocked(true)
             setPinInput('')
@@ -60,10 +60,13 @@ export default function VaultLock() {
         setIsVerifying(true)
         const hash = await hashPin(pin)
         const { data: { user } } = await supabase.auth.getUser()
-        const stored = user
-            ? (localStorage.getItem(`wv_pinHash_${user.id}`) || localStorage.getItem('vaultPinHash'))
-            : localStorage.getItem('vaultPinHash')
-        if (hash === stored) {
+        if (!user || !user.id) {
+            setIsLocked(false)
+            setIsVerifying(false)
+            return
+        }
+        const stored = localStorage.getItem(`wv_pinHash_${user.id}`)
+        if (hash && stored && hash === stored) {
             setIsLocked(false)
             setPinInput('')
             setPinError('')
@@ -76,23 +79,32 @@ export default function VaultLock() {
 
     const pressNumpad = (digit) => {
         if (isVerifying) return
-        setPinError('')
-        setPinInput(prev => prev.length < 4 ? prev + digit : prev)
+        setPinInput(prev => {
+            if (prev.length < 4) {
+                setPinError('')
+                return prev + digit
+            }
+            return prev
+        })
     }
 
-    // Keyboard support for desktop users
+    // Physical Keyboard support (0-9, Numpad, Backspace, Enter)
     useEffect(() => {
         if (!isLocked) return
 
         const handleKeyDown = (e) => {
             if (isVerifying) return
-            if (e.key >= '0' && e.key <= '9') {
-                setPinError('')
-                setPinInput(prev => prev.length < 4 ? prev + e.key : prev)
+
+            // Numbers 0-9 (top row or numpad)
+            if (/^[0-9]$/.test(e.key)) {
+                e.preventDefault()
+                pressNumpad(e.key)
             } else if (e.key === 'Backspace') {
+                e.preventDefault()
                 setPinInput(prev => prev.slice(0, -1))
                 setPinError('')
             } else if (e.key === 'Enter') {
+                e.preventDefault()
                 if (pinInput.length === 4) {
                     handleVerify(pinInput)
                 }
@@ -105,12 +117,12 @@ export default function VaultLock() {
 
     const handleForgotPin = async () => {
         const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
+        if (user?.id) {
             localStorage.removeItem(`wv_pinHash_${user.id}`)
             localStorage.setItem(`wv_vaultLockEnabled_${user.id}`, 'false')
         }
         localStorage.removeItem('vaultPinHash')
-        localStorage.setItem('vaultLockEnabled', 'false')
+        localStorage.removeItem('vaultLockEnabled')
         await supabase.auth.signOut()
         setIsLocked(false)
         router.push('/login')
