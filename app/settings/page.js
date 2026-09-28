@@ -201,6 +201,33 @@ export default function Settings() {
         }
     }
 
+    const handleSessionDurationChange = async (newDuration) => {
+        setSessionDuration(newDuration)
+        localStorage.setItem('sessionDuration', newDuration)
+        if (user?.id) {
+            localStorage.setItem(`wv_sessionDuration_${user.id}`, newDuration)
+            try {
+                await supabase.auth.updateUser({ data: { session_duration: newDuration } })
+            } catch (e) {
+                console.error('Error saving session duration setting:', e)
+            }
+        }
+    }
+
+    const handleNotificationsToggle = async () => {
+        const newValue = !notifications
+        setNotifications(newValue)
+        localStorage.setItem('emailNotifications', String(newValue))
+        if (user?.id) {
+            localStorage.setItem(`wv_emailNotifications_${user.id}`, String(newValue))
+            try {
+                await supabase.auth.updateUser({ data: { notifications: newValue } })
+            } catch (e) {
+                console.error('Error saving notifications setting:', e)
+            }
+        }
+    }
+
     const handleAutoArchiveToggle = async () => {
         const newValue = !autoArchiveExpired
         setAutoArchiveExpired(newValue)
@@ -400,19 +427,7 @@ export default function Settings() {
                                 </div>
                                 <select
                                     value={sessionDuration}
-                                    onChange={async (e) => {
-                                        const val = e.target.value
-                                        setSessionDuration(val)
-                                        localStorage.setItem('sessionDuration', val)
-                                        if (user?.id) {
-                                            localStorage.setItem(`wv_sessionDuration_${user.id}`, val)
-                                            try {
-                                                await supabase.auth.updateUser({ data: { session_duration: val } })
-                                            } catch (err) {
-                                                console.error('Error saving session duration:', err)
-                                            }
-                                        }
-                                    }}
+                                    onChange={(e) => handleSessionDurationChange(e.target.value)}
                                     className="h-9 px-3 pr-8 rounded-lg border border-gray-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-gray-800 dark:text-neutral-100 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors cursor-pointer"
                                 >
                                     <option value="1">1 day</option>
@@ -495,19 +510,7 @@ export default function Settings() {
                                         <p className="text-sm text-gray-500 dark:text-neutral-400">Receive warranty expiration alerts</p>
                                     </div>
                                     <button
-                                        onClick={async () => {
-                                            const newValue = !notifications
-                                            setNotifications(newValue)
-                                            localStorage.setItem('emailNotifications', String(newValue))
-                                            if (user?.id) {
-                                                localStorage.setItem(`wv_emailNotifications_${user.id}`, String(newValue))
-                                                try {
-                                                    await supabase.auth.updateUser({ data: { notifications: newValue } })
-                                                } catch (err) {
-                                                    console.error('Error saving notifications setting:', err)
-                                                }
-                                            }
-                                        }}
+                                        onClick={handleNotificationsToggle}
                                         title={notifications ? 'Notifications On' : 'Notifications Off'}
                                         className={`
                                     relative w-10 h-10 rounded-full flex items-center justify-center

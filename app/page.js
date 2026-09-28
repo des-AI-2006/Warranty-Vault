@@ -124,6 +124,13 @@ export default function Home() {
           document.documentElement.classList.remove('dark')
           localStorage.setItem('theme', 'light')
         }
+
+        const userAutoArchive = user.user_metadata?.auto_archive_expired !== undefined
+          ? user.user_metadata.auto_archive_expired
+          : (localStorage.getItem(`wv_autoArchiveExpired_${user.id}`) !== null
+              ? localStorage.getItem(`wv_autoArchiveExpired_${user.id}`) === 'true'
+              : localStorage.getItem('autoArchiveExpired') === 'true')
+        setAutoArchiveExpired(userAutoArchive)
       }
 
       // Check first-time onboarding or replay trigger
@@ -185,8 +192,12 @@ export default function Home() {
 
 
   const handleTestEmail = async () => {
-    const emailEnabled = localStorage.getItem('emailNotifications')
-    if (emailEnabled !== null && emailEnabled === 'false') {
+    const emailEnabled = user?.user_metadata?.notifications !== undefined
+      ? user.user_metadata.notifications
+      : (localStorage.getItem(`wv_emailNotifications_${user?.id}`) !== null
+          ? localStorage.getItem(`wv_emailNotifications_${user?.id}`) === 'true'
+          : localStorage.getItem('emailNotifications') !== 'false')
+    if (!emailEnabled) {
       alert('Cannot send test email while notifications are disabled.')
       return
     }
@@ -283,7 +294,7 @@ export default function Home() {
           <div className="flex items-center gap-3 md:self-end md:mb-1">
             {user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL && (
               <button
-                onClick={() => handleTestEmail(warranties[0]?.name || 'Test Product')}
+                onClick={handleTestEmail}
                 disabled={sendingEmail}
                 className={`flex items-center justify-center h-11 px-5 rounded-xl font-semibold shadow-md transition-all active:scale-95 text-sm ${sendingEmail
                   ? 'bg-gray-200 text-gray-400 cursor-not-allowed'

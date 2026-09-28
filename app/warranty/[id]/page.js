@@ -701,7 +701,7 @@ export default function WarrantyDetail() {
                                     {
                                         key: 'invoice',
                                         icon: '📄',
-                                        text: <>Keep original <span className="font-semibold">{warranty.brand}</span> Invoice handy</>,
+                                        text: <>Keep original {warranty.brand ? <span className="font-semibold">{warranty.brand} </span> : ''}Invoice handy</>,
                                     },
                                     {
                                         key: 'id',
@@ -718,7 +718,7 @@ export default function WarrantyDetail() {
                                     {
                                         key: 'invoice',
                                         icon: '📄',
-                                        text: <>Keep original <span className="font-semibold">{warranty.brand}</span> Invoice handy</>,
+                                        text: <>Keep original {warranty.brand ? <span className="font-semibold">{warranty.brand} </span> : ''}Invoice handy</>,
                                     },
                                     {
                                         key: 'id',
