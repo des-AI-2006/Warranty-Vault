@@ -94,7 +94,17 @@ export default function EditWarranty() {
     }
 
     const handleFileChange = (e) => {
-        setReceiptFile(e.target.files[0] || null)
+        const file = e.target.files[0] || null
+        if (file) {
+            const allowedTypes = ['image/jpeg', 'image/png']
+            const fileType = file.type || ''
+            const fileExtension = file.name ? file.name.split('.').pop().toLowerCase() : ''
+            if (!allowedTypes.includes(fileType) && !['jpg', 'jpeg', 'png'].includes(fileExtension)) {
+                alert('Invalid file format. Please upload a JPG or PNG image.')
+                return
+            }
+        }
+        setReceiptFile(file)
     }
 
     const uploadFile = async (file, fallback) => {
@@ -304,7 +314,7 @@ export default function EditWarranty() {
                             <input
                                 type="file"
                                 id="receipt"
-                                accept="image/*,.pdf"
+                                accept="image/jpeg,image/png"
                                 onChange={handleFileChange}
                                 className="hidden"
                             />
@@ -319,7 +329,7 @@ export default function EditWarranty() {
                                     <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                                     </svg>
-                                    <a href={`${existingProductImageUrl}?t=${Date.now()}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline truncate">
+                                    <a href={existingProductImageUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline truncate">
                                         Current photo attached
                                     </a>
                                 </div>
@@ -338,8 +348,20 @@ export default function EditWarranty() {
                             <input
                                 type="file"
                                 id="product_photo"
-                                accept="image/*"
-                                onChange={(e) => setProductPhotoFile(e.target.files[0] || null)}
+                                accept="image/jpeg,image/png"
+                                onChange={(e) => {
+                                    const file = e.target.files[0] || null
+                                    if (file) {
+                                        const allowedTypes = ['image/jpeg', 'image/png']
+                                        const fileType = file.type || ''
+                                        const fileExtension = file.name ? file.name.split('.').pop().toLowerCase() : ''
+                                        if (!allowedTypes.includes(fileType) && !['jpg', 'jpeg', 'png'].includes(fileExtension)) {
+                                            alert('Invalid file format. Please upload a JPG or PNG image.')
+                                            return
+                                        }
+                                    }
+                                    setProductPhotoFile(file)
+                                }}
                                 className="hidden"
                             />
                         </div>

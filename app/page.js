@@ -8,11 +8,14 @@ import WelcomeIntro from '@/components/WelcomeIntro'
 
 // Hoisted Helper/Utility Functions to prevent TDZ issues during render initialization
 const getDaysRemaining = (expiryDate) => {
+  if (!expiryDate) return 0
   const today = new Date()
-  const expiry = new Date(expiryDate)
-  const diffTime = expiry - today
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  return diffDays
+  today.setHours(0, 0, 0, 0)
+  const [y, m, d] = String(expiryDate).split('-').map(Number)
+  const expiry = (y && m && d) ? new Date(y, m - 1, d) : new Date(expiryDate)
+  expiry.setHours(0, 0, 0, 0)
+  const diffTime = expiry.getTime() - today.getTime()
+  return Math.round(diffTime / (1000 * 60 * 60 * 24))
 }
 
 const getBadgeColor = (days) => {
@@ -94,10 +97,6 @@ export default function Home() {
   }
 
   useEffect(() => { 
-    if (typeof window !== 'undefined') {
-      setAutoArchiveExpired(localStorage.getItem('autoArchiveExpired') === 'true')
-    }
-
     const checkUserAndFetch = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
@@ -106,6 +105,14 @@ export default function Home() {
       }
       setUser(user)
       fetchWarranties(user)
+
+      // Ensure user-specific auto-archive preference is loaded
+      if (typeof window !== 'undefined') {
+        const userAutoArchive = user.user_metadata?.auto_archive_expired
+          ?? (localStorage.getItem(`wv_autoArchiveExpired_${user.id}`) === 'true'
+            || localStorage.getItem('autoArchiveExpired') === 'true')
+        setAutoArchiveExpired(userAutoArchive)
+      }
 
       // Ensure user's individual theme preference is applied
       if (typeof window !== 'undefined') {
@@ -448,7 +455,7 @@ export default function Home() {
                       <div className="relative h-40 bg-gray-100 dark:bg-neutral-900 overflow-hidden">
                         {warranty.product_image_url ? (
                           <img
-                            src={`${warranty.product_image_url}?t=${Date.now()}`}
+                            src={warranty.product_image_url}
                             alt={warranty.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />

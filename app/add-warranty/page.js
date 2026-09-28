@@ -192,10 +192,10 @@ export default function AddWarranty() {
 
     const handleFileSelect = async (file) => {
         if (!file) return
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
+        const allowedTypes = ['image/jpeg', 'image/png']
         const fileType = file.type || ''
         const fileExtension = file.name ? file.name.split('.').pop().toLowerCase() : ''
-        if (!allowedTypes.includes(fileType) && !['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'].includes(fileExtension)) {
+        if (!allowedTypes.includes(fileType) && !['jpg', 'jpeg', 'png'].includes(fileExtension)) {
             alert('Invalid file format. Please upload a JPG or PNG receipt image.')
             return
         }
@@ -685,7 +685,7 @@ export default function AddWarranty() {
                                     {productPhotoFile ? productPhotoFile.name : 'Upload product photo (optional)'}
                                 </span>
                             </label>
-                            <input type="file" id="product_photo" accept="image/*" onChange={(e) => setProductPhotoFile(e.target.files[0] || null)} className="hidden" />
+                            <input type="file" id="product_photo" accept="image/jpeg,image/png" onChange={(e) => setProductPhotoFile(e.target.files[0] || null)} className="hidden" />
                         </div>
                     </div>
 

@@ -187,8 +187,8 @@ export default function WarrantyDetail() {
             const a = document.createElement('a')
             a.href = blobUrl
             const fileExtension = url.split('.').pop().split('?')[0] || 'jpg'
-            const sanitizedName = productName.toLowerCase().replace(/[^a-z0-9]/g, '_')
-            a.download = `${sanitizedName}_receipt.${fileExtension}`
+            const baseName = (productName || 'warranty').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/^_+|_+$/g, '') || 'product'
+            a.download = `${baseName}_receipt.${fileExtension}`
             document.body.appendChild(a)
             a.click()
             document.body.removeChild(a)
@@ -200,10 +200,14 @@ export default function WarrantyDetail() {
     }
 
     const getDaysRemaining = (expiryDate) => {
+        if (!expiryDate) return 0
         const today = new Date()
-        const expiry = new Date(expiryDate)
-        const diffTime = expiry - today
-        return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        today.setHours(0, 0, 0, 0)
+        const [y, m, d] = String(expiryDate).split('-').map(Number)
+        const expiry = (y && m && d) ? new Date(y, m - 1, d) : new Date(expiryDate)
+        expiry.setHours(0, 0, 0, 0)
+        const diffTime = expiry.getTime() - today.getTime()
+        return Math.round(diffTime / (1000 * 60 * 60 * 24))
     }
 
     const getStatusText = (days) => {
@@ -293,7 +297,7 @@ export default function WarrantyDetail() {
                 `}>
                     {warranty.product_image_url ? (
                         <img
-                            src={`${warranty.product_image_url}?t=${Date.now()}`}
+                            src={warranty.product_image_url}
                             alt={warranty.name}
                             onLoad={(e) => {
                                 const { naturalWidth, naturalHeight } = e.currentTarget
@@ -589,7 +593,7 @@ export default function WarrantyDetail() {
                                                 <div className="flex justify-between items-center text-[10px] text-gray-400 dark:text-neutral-500 font-mono pt-3 mt-3 border-t border-gray-200 dark:border-neutral-800">
                                                     <span>Recorded</span>
                                                     <span>
-                                                        {new Date(note.created_at).toLocaleDateString(undefined, {
+                                                        {new Date(note.created_at).toLocaleString(undefined, {
                                                             month: 'short',
                                                             day: 'numeric',
                                                             year: 'numeric',
